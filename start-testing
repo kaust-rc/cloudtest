@@ -3,8 +3,8 @@
 #
 # Defaults
 #
-QUEUENAME_DEF=defaultq
-THISDIR=$(dirname "$0")
+export QUEUENAME_DEF=defaultq
+export THISDIR=$(dirname "$0")
 
 #
 # Usage function
@@ -30,7 +30,7 @@ while getopts ":a:q:N:c:t:v:" opt; do
             NODES=$OPTARG
             ;;
         c)
-            CLUSTER=$OPTARG
+            export CLUSTER=$OPTARG
             ;;
         t)
             TASKSPERNODE=$OPTARG
@@ -59,23 +59,49 @@ if [ -z "${APPNAME}" ] || [ -z "${CLUSTER}" ] ]; then
 fi
 
 
+if [ -z "${QUEUENAME}" ]; then
+    export QUEUENAME=$QUEUENAME_DEF
+fi
+
+#
+# replace function
+#
+## replace $original $replacement $path
+
+replace(){
+    sed -i -e "s/$1/$2/g" $3
+
+}
+
 #
 # Submission function
 #
-# SLURM_SUBMIT($APPNAME,$CLUSTER, $JOBNAME, $NPAR, $CPUNUM, $QUEUENAME, $WALLTIME)
+## SLURM_SUBMIT $APPNAME $JOBNAME $NPAR $CPUNUM $QUEUENAME $WALLTIME
 
 SLURM_SUBMIT(){
     # variables
     APPNAME=$1
-    CLUSTER=$2
-    JOBNAME=$3
-    NPAR=$4
-    CPUNUM=$5
-    QUEUENAME=$6
-    WALLTIME=$7
+    JOBNAME=$2
+    NPAR=$3
+    CPUNUM=$4
+    QUEUENAME=$5
+    WALLTIME=$6
 
     JOBDIR=$THISDIR/$APPNAME/$CLUSTER/$JOBNAME/NPAR-$NPAR/$CPUNUM
     mkdir -p $JOBDIR && cd $JOBDIR
     echo "rm -rf $JOBDIR/*"
-    
+    cp $THISDIR/$APPNAME/_orig/$JOBNAME/* $JOBDIR/
+    cp $THISDIR/$APPNAME/_slurm $JOBDIR/slurm
+    # replace the necessary changes
+    replace @JOBNAME@ $JOBNAME slurm
+    replace @CLUSTER@ $CLUSTER slurm
+    replace @NPAR@ NPAR-$NPAR slurm
+    replace @CPUNUM@ $CPUNUM slurm
+    replace @WALLTIME@ $WALLTIME slurm
+    replace @QUEUENAME@ $QUEUENAME slurm
+
+    replace @NPAR@ $NPAR INCAR
+    sbatch slurm
 }
+
+. $THISDIR/$APPNAME/_scenario
