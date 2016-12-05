@@ -1,0 +1,52 @@
+#!/bin/bash -l
+
+APPNAME=openmpi
+VERSION=$1
+COMPILER=$2
+COMPILERVERSION=$3
+SRCDIR=/opt/sources/$APPNAME/$VERSION
+BUILDDIR=/opt/builds
+
+cd "${BUILDDIR}"
+rm -fr $APPNAME-$VERSION-$COMPILER-$COMPILERVERSION
+tar xfz "${SRCDIR}/$APPNAME-$VERSION.tar.gz"
+mv $APPNAME-$VERSION $APPNAME-$VERSION-$COMPILER-$COMPILERVERSION
+cd $APPNAME-$VERSION-$COMPILER-$COMPILERVERSION
+
+module load $COMPILER/$COMPILERVERSION
+
+# Intel arch
+export CFLAGS='-O2 -xHost'
+export CXXFLAGS=${CFLAGS} 
+export FFLAGS=${CFLAGS} 
+export FCFLAGS=${FFLAGS}
+
+export PKG_CONFIG_PATH=/usr/local/slurm/lib64/pkgconfig:$PKG_CONFIG_PATH
+
+if ! ./configure --prefix=/opt/share/$APPNAME/$VERSION/$COMPILER-$COMPILERVERSION \
+                 --with-hwloc=internal \
+                 --enable-shared \
+                 --enable-static \
+                 --with-slurm \
+                 --enable-mpi-thread-multiple \
+                 --with-pmi=/usr/local/slurm  ;
+
+                 #--with-psm \
+                 #--with-threads=posix \
+                 #--with-verbs \
+then
+    echo "Configuration failed" >&2
+    exit 1
+fi
+
+if ! make all > make.log; then
+    echo "Making sources failed" >&2
+    exit 1
+fi
+
+if ! make all install > make.install.log; then
+    echo "Installation failed" >&2
+    exit 1
+fi
+
+module unload $COMPILER/$COMPILERVERSION

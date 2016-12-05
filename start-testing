@@ -1,0 +1,81 @@
+#!/bin/bash -l
+
+#
+# Defaults
+#
+QUEUENAME_DEF=defaultq
+THISDIR=$(dirname "$0")
+
+#
+# Usage function
+#
+usage() {
+    echo "Usage: $0 [-a application-name] [-c cluster-name] [-q queue-name] [-N number-of-nodes] [-t tasks-per-node] [-h help-version]" 1>&2;
+    exit 1;
+}
+
+#
+# Use getopts to get arguments
+#
+
+while getopts ":a:q:N:c:t:v:" opt; do
+    case $opt in
+        a)
+            APPNAME=$OPTARG
+            ;;
+        q)
+            QUEUENAME=$OPTARG
+            ;;
+        N)
+            NODES=$OPTARG
+            ;;
+        c)
+            CLUSTER=$OPTARG
+            ;;
+        t)
+            TASKSPERNODE=$OPTARG
+            ;;
+        h)
+            usage
+            exit 1
+            ;;
+        [?])
+            echo "Invalid option: -$OPTARG"
+            usage
+            exit 1
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument."
+            usage
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z "${APPNAME}" ] || [ -z "${CLUSTER}" ] ]; then
+    usage
+    exit 1
+fi
+
+
+#
+# Submission function
+#
+# SLURM_SUBMIT($APPNAME,$CLUSTER, $JOBNAME, $NPAR, $CPUNUM, $QUEUENAME, $WALLTIME)
+
+SLURM_SUBMIT(){
+    # variables
+    APPNAME=$1
+    CLUSTER=$2
+    JOBNAME=$3
+    NPAR=$4
+    CPUNUM=$5
+    QUEUENAME=$6
+    WALLTIME=$7
+
+    JOBDIR=$THISDIR/$APPNAME/$CLUSTER/$JOBNAME/NPAR-$NPAR/$CPUNUM
+    mkdir -p $JOBDIR && cd $JOBDIR
+    echo "rm -rf $JOBDIR/*"
+    
+}

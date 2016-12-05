@@ -1,0 +1,80 @@
+#!/bin/bash -l
+
+# The following script is optimized to be used on VASP v5.4.1
+
+APPNAME=vasp
+APPDATE=05Feb16
+VERSION=$1
+COMPILER=$2
+COMPILERVERSION=$3
+COMPILERBUILD=$4
+COMPILERBUILDVERSION=$5
+SRCDIR=/opt/sources/$APPNAME/$VERSION
+BUILDDIR=/opt/builds
+
+cd "${BUILDDIR}"
+rm -fr $APPNAME-$VERSION-$COMPILER-$COMPILERVERSION
+tar xfz "${SRCDIR}/$APPNAME.$VERSION.$APPDATE.tar.gz"
+mv $APPNAME.$VERSION $APPNAME-$VERSION-$COMPILER-$COMPILERVERSION
+cd $APPNAME-$VERSION-$COMPILER-$COMPILERVERSION
+
+# applying patch 0
+PATCHDATE=14032016
+PATCHNAME="patch.$VERSION.$PATCHDATE"
+cp ${SRCDIR}/$PATCHNAME.gz .
+gunzip $PATCHNAME.gz
+patch -p0 < $PATCHNAME
+
+# applying patch 1
+PATCHDATE=03082016
+PATCHNAME="patch.$VERSION.$PATCHDATE"
+cp ${SRCDIR}/$PATCHNAME.gz .
+gunzip $PATCHNAME.gz
+patch -p1 < $PATCHNAME
+
+# Building WANNIER library
+WANNAME=wannier90
+WANVERSION=1.2
+
+cd src
+tar xfz "${SRCDIR}/$WANNAME-$WANVERSION.tar.gz"
+cd $WANNAME-$WANVERSION
+#cp config/make.sys.ifort make.sys
+
+echo 'F90 = ifort
+FCOPTS = -O2 -xHost
+LDOPTS = -O2 -xHost
+LIBDIR = /opt/share/intel/2015/mkl/lib/intel64
+LIBS   =  -lmkl_core -lmkl_intel_lp64 -lmkl_sequential -lpthread ' > make.sys
+
+module load $COMPILER/$COMPILERVERSION/$COMPILERBUILD-$COMPILERBUILDVERSION
+
+make lib
+
+cd ../..;
+cp arch/makefile.include.linux_intel makefile.include
+
+#   8a. CPP_OPTIONS= -DMPI -DHOST=\"ResearchComputing_Intel\" -DIFC \
+#                    -DCACHE_SIZE=12000 -DPGF90 -Davoidalloc \
+#                    -DMPI_BLOCK=8000 -DscaLAPACK -Duse_collective \
+#                    -DnoAugXCmeta -Duse_bse_te \
+#                    -Duse_shmem -Dtbdyn \
+#                    -DVASP2WANNIER90 -DRPROMU_DGEMV -DRACCMU_DGEMV -DnoSTOPCAR -Ddo_loops
+#   8b. FC         = mpif90
+#   8c. FCL        = mpif90 -mkl=sequential
+#   8d. FFLAGS     = -assume byterecl -xHost
+#   8e. OFLAG      = -O2 -ip -xHost
+#   8f. BLACS      = $(MKL_PATH)/libmkl_blacs_openmpi_lp64.a
+#   8g. LLIBS      = ../../src/wannier90-1.2/libwannier.a $(SCALAPACK) $(LAPACK) $(BLAS)
+#   8h. CPP_LIB    = $(CPP) -DLONGCHAR
+#   8i. CC_LIB     = mpicc
+
+make all
+mkdir -p /opt/share/$APPNAME/$VERSION/$COMPILER-$COMPILERVERSION-$COMPILERBUILD-$COMPILERBUILDVERSION
+cp bin/* /opt/share/$APPNAME/$VERSION/$COMPILER-$COMPILERVERSION-$COMPILERBUILD-$COMPILERBUILDVERSION
+cd /opt/share/$APPNAME/$VERSION/$COMPILER-$COMPILERVERSION-$COMPILERBUILD-$COMPILERBUILDVERSION
+
+# create KAUST friendly excutables
+ln -s vasp_std vasp
+ln -s vasp_gam vasp-gamma
+lln -s vasp_ncl vasp-so

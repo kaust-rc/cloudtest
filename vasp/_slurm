@@ -1,0 +1,22 @@
+#!/bin/bash -l
+ 
+#SBATCH -J vasp_[[JOBNAME]]_[[CLUSTER]]_[[CPUNUM]]   # Specify your job's name
+#SBATCH -o JOB.%j.out                       # File to which STDOUT will be written
+#SBATCH -e JOB.%j.err                       # File to which STDERR will be written
+#SBATCH -p [[QUEUENAME]]                    # Partition Queue (defaultq, idle, short). 
+#SBATCH -t 0-02:00                          # ALWAYS specify expected run time; format in D-HH:MM (e.g. 0-00:05)
+#SBATCH --ntasks=[[CPUNUM]]                 # Number of cores (e.g. 64)
+#SBATCH --exclusive                         # We should be the only job running on this node
+ 
+# Clean environment first then load desired module
+module purge
+ 
+# This will load the VASP module and its dependencies (Intel and OpenMPI)
+module load vasp/5.4.1/openmpi-1.10.2-intel-2015
+ 
+# cd to your working directory under /scratch where your input file is
+cd [[CLUSTER]]/[[JOBNAME]]/[[NPAR]]/[[CPUNUM]]
+
+# run VASP
+#srun --cpu_bind=cores vasp
+time mpirun -np [[CPUNUM]] vasp 
