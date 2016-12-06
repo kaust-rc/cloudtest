@@ -21,7 +21,7 @@ usage() {
 while getopts ":a:q:N:c:t:v:" opt; do
     case $opt in
         a)
-            APPNAME=$OPTARG
+            export APPNAME=$OPTARG
             ;;
         q)
             QUEUENAME=$OPTARG
@@ -76,16 +76,15 @@ replace(){
 #
 # Submission function
 #
-## SLURM_SUBMIT $APPNAME $JOBNAME $NPAR $CPUNUM $QUEUENAME $WALLTIME
+## SLURM_SUBMIT $JOBNAME $NPAR $CPUNUM $QUEUENAME $WALLTIME
 
 SLURM_SUBMIT(){
-    # variables
-    APPNAME=$1
-    JOBNAME=$2
-    NPAR=$3
-    CPUNUM=$4
-    QUEUENAME=$5
-    WALLTIME=$6
+    # variables, APPNAME is already exported in the main script
+    JOBNAME=$1
+    NPAR=$2
+    CPUNUM=$3
+    QUEUENAME=$4
+    WALLTIME=$5
 
     JOBDIR=$THISDIR/$APPNAME/$CLUSTER/$JOBNAME/NPAR-$NPAR/$CPUNUM
     mkdir -p $JOBDIR && cd $JOBDIR
@@ -103,5 +102,6 @@ SLURM_SUBMIT(){
     replace @NPAR@ $NPAR INCAR
     sbatch slurm
 }
+export -f SLURM_SUBMIT
 
 . $THISDIR/$APPNAME/_scenario
