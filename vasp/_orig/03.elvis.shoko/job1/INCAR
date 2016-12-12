@@ -1,0 +1,36 @@
+#Scaling settings
+#
+#NPAR = 4
+KPAR = 8 #normally, set equal to number of nodes. Number to be divisor of both NKPTS & no. of nodes. 
+LPLANE = .TRUE.
+NCORE  = 2 #normally, number of cores per node (e.g. 4 or 8) though not the case here.
+LSCALU = .FALSE.
+NSIM   = 4
+##
+#
+IBRION = 2
+POTIM= 1.00
+PREC = Low
+EDIFF=1E-4
+ISYM = 0
+ENCUT = 400
+#TEBEG = 100
+#TEEND = 100
+LREAL = Auto
+NSW = 40000
+NELM = 200
+#NELMIN=8
+ISMEAR= 0
+SIGMA = 0.2
+ALGO = Fast
+MAXMIX = 40
+NSIM = 1
+NWRITE = 1
+#LCHARG = .FALSE.
+#LWAV = .FALSE.
+#ISTART = 1
+#WEIMIN=0
+#IALGO = 48
+#ISIF = 0
+#SMASS=-3
+#NPAR=4
