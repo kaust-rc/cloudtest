@@ -40,11 +40,13 @@ cd $JOBDIR
 module purge
 module load vasp
 
+echo $SLURM_JOB_NODELIST > hosts.mpd
+
 time mpirun -f hosts.mpd -np $TOTAL_CORES -ppn $TASKSPERNODE vasp
 EOF
 
 echo "Submitting JOB from $JOBDIR"
-#SUBMITSTRING=$(sbatch $SUBMITFILE)
+SUBMITSTRING=$(sbatch $SUBMITFILE)
 
 cat > $DEPFILE << EOF
 #!/bin/bash -l
@@ -64,4 +66,4 @@ rm -rf "$JOBDIR"
 EOF
 
 echo "Submitting Dependency from $JOBDIR"
-#sbatch $DEPFILE
+sbatch $DEPFILE
