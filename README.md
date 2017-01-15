@@ -11,5 +11,5 @@ Usage
     * `git clone git@github.com:kaust-rc/cloudtest.git`
 * Run `./start-testing` script with the required parameters.
     * Example `./start-testing -a vasp -c azure -q vasp -j small`
-        * This will submit vasp test to the aws cloud and get the results in the results directory.
+        * This will submit vasp test to the azure cloud and get the results in the results directory.
     * For further information `./start-testing -h`
