@@ -1,0 +1,5 @@
+auto     ! your own title
+0        ! zero for automatic k-mesh generation
+M        ! Monkhorst generation scheme
+ 5  5  1 ! number grid along each direction
+ 0  0  0 ! fractional shift of the grid

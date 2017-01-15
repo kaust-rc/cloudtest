@@ -1,0 +1,25 @@
+ Starting parameters for this run:
+   SYSTEM =  cof 
+   NWRITE =     2     write-flag
+#  ISTART =     0     job   : 0-new  1-cont  2-samecut
+#  ICHARG =    11     charge: 1-file 2-atom 10-const
+   ISPIN  =     1     spin-polarized or not:
+   GGA    =   PE
+   PREC   =  high    low | medium | high
+   ENCUT  =  400
+   LREAL  =   Auto    real-space projection (.FALSE., .TRUE., On, Auto)
+   NELM   =    90     number of ELM steps
+   EDIFF  =  1E-07    energy stopping-criterion for ELM
+   ISMEAR =   -5      (-1-Fermi, 1-Methfessel/Paxton)
+#  ISMEAR =    1      (-1-Fermi, 1-Methfessel/Paxton)
+#  SIGMA  =    0.20   broadening in eV
+   LWAVE  = .FALSE.
+  LCHARG  = .TRUE.
+   LVHAR  = .TRUE.
+#  LVTOT  = .TRUE.
+   IDIPOL = 3
+   LDIPOL = .TRUE.
+   ALGO   = VeryFast  
+   NPAR   =  1
+   IVDW   = 12
+   LORBIT = 11 

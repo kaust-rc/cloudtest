@@ -1,0 +1,24 @@
+ Starting parameters for this run:
+   SYSTEM =  agnr
+   NWRITE =      2    write-flag
+   ISTART =      0    job   : 0-new  1-cont  2-samecut
+   ICHARG =     2    charge: 1-file 2-atom 10-const
+   ISPIN  =      1    spin-polarized or not:
+   GGA     =  PE
+   PREC   =  high   low | medium | high
+   ENCUT  =  500
+   LREAL  =   Auto    real-space projection (.FALSE., .TRUE., On, Auto)
+   NSW    =     0      max number of geometry steps
+   IBRION =    -1     ionic relax: 0-MD, 1-quasi-Newton, 2-CG, 3-Damped MD
+   NELM   =    90    number of ELM steps
+   EDIFF  =  1E-07   energy stopping-criterion for ELM
+   ISIF   =     2     (1:force=y stress=y ions=y shape=y volume=n)
+   ISYM   =     0     (1-use symmetry, 0-no symmetry)
+   ISMEAR =    -5    (-1-Fermi, 1-Methfessel/Paxton)
+#  SIGMA  =    0.10    broadening in eV
+   LWAVE  = .FALSE.
+  LCHARG  = .TRUE.
+   LVTOT  = .FALSE.
+   ALGO   = Very_Fast  
+#  IALGO  =     48    algorithm (8=CG for small, 48=RMM for big systems)
+   NPAR   =  4

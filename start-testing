@@ -1,27 +1,34 @@
 #!/bin/bash -l
 
+## the input would be like
+## ./start -a <vasp> -c <azure> -q <vasp> -j <small>
+
+
 #
 # Defaults
 #
-export QUEUENAME_DEF=defaultq
-export THISDIR=$(dirname "$0")
+QUEUENAME_DEF=defaultq
+NODES_DEF=1
+TASKSPERNODE_DEF=16
+JOBTYPE_DEF=small
+
+STARTDIR=$(pwd)
+TESTDIR=/scratch/$USER/test-framework
 
 #
 # Usage function
 #
 usage() {
-    echo "Usage: $0 [-a application-name] [-c cluster-name] [-q queue-name] [-N number-of-nodes] [-t tasks-per-node] [-h help-version]" 1>&2;
+    echo "Usage: $0 [-a application-name] [-c cluster-name] [-q queue-name] [-N number-of-nodes] [-t tasks-per-node] [-j job-type] [-h help-version]" 1>&2;
     exit 1;
 }
-
 #
 # Use getopts to get arguments
 #
-
-while getopts ":a:q:N:c:t:v:" opt; do
+while getopts ":a:q:N:c:t:v:j:" opt; do
     case $opt in
         a)
-            export APPNAME=$OPTARG
+            APPNAME=$OPTARG
             ;;
         q)
             QUEUENAME=$OPTARG
@@ -30,10 +37,13 @@ while getopts ":a:q:N:c:t:v:" opt; do
             NODES=$OPTARG
             ;;
         c)
-            export CLUSTER=$OPTARG
+            CLUSTER=$OPTARG
             ;;
         t)
             TASKSPERNODE=$OPTARG
+            ;;
+        j)
+            JOBTYPE=$OPTARG
             ;;
         h)
             usage
@@ -58,50 +68,50 @@ if [ -z "${APPNAME}" ] || [ -z "${CLUSTER}" ] ]; then
     exit 1
 fi
 
-
 if [ -z "${QUEUENAME}" ]; then
     export QUEUENAME=$QUEUENAME_DEF
 fi
 
-#
-# replace function
-#
-## replace $original $replacement $path
+if [ -z "${JOBTYPE}" ]; then
+    export JOBTYPE=$JOBTYPE_DEF
+fi
 
-replace(){
-    sed -i -e "s/$1/$2/g" $3
+if [ -z "${NODES}" ]; then
+    case $JOBTYPE in
+    small)
+            export NODES=$NODES_DEF
+            ;;
+    medium)
+            export NODES=$(($NODES_DEF*2))
+            ;;
+    large)
+            export NODES=$(($NODES_DEF*4))
+            ;;
+    esac
+fi
 
+if [ -z "${TASKSPERNODE}" ]; then
+    export TASKSPERNODE=$TASKSPERNODE_DEF
+fi
+
+
+
+
+fi
+
+submit_job() {
+    APPNAME=$1
+    CLUSTER=$2
+    QUEUENAME=$3
+    NODES=$4
+    TASKSPERNODE=$5
+    JOBTYPE=$6
+    STARTDIR=$7
+    TESTDIR=$8
+
+    TOTAL_CORES=$(($NODES*$TASKSPERNODE))
+
+    ./$APPNAME/_slurm $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE
 }
 
-#
-# Submission function
-#
-## SLURM_SUBMIT $JOBNAME $NPAR $CPUNUM $QUEUENAME $WALLTIME
-
-SLURM_SUBMIT(){
-    # variables, APPNAME is already exported in the main script
-    JOBNAME=$1
-    NPAR=$2
-    CPUNUM=$3
-    QUEUENAME=$4
-    WALLTIME=$5
-
-    JOBDIR=$THISDIR/$APPNAME/$CLUSTER/$JOBNAME/NPAR-$NPAR/$CPUNUM
-    mkdir -p $JOBDIR && cd $JOBDIR
-    echo "rm -rf $JOBDIR/*"
-    cp $THISDIR/$APPNAME/_orig/$JOBNAME/* $JOBDIR/
-    cp $THISDIR/$APPNAME/_slurm $JOBDIR/slurm
-    # replace the necessary changes
-    replace @JOBNAME@ $JOBNAME slurm
-    replace @CLUSTER@ $CLUSTER slurm
-    replace @NPAR@ NPAR-$NPAR slurm
-    replace @CPUNUM@ $CPUNUM slurm
-    replace @WALLTIME@ $WALLTIME slurm
-    replace @QUEUENAME@ $QUEUENAME slurm
-
-    replace @NPAR@ $NPAR INCAR
-    sbatch slurm
-}
-export -f SLURM_SUBMIT
-
-. $THISDIR/$APPNAME/_scenario
+submit_job $APPNAME $CLUSTER $QUEUENAME $NODES $TASKSPERNODE $JOBTYPE $STARTDIR $TESTDIR

@@ -52,22 +52,56 @@ module load $COMPILER/$COMPILERVERSION/$COMPILERBUILD-$COMPILERBUILDVERSION
 make lib
 
 cd ../..;
-cp arch/makefile.include.linux_intel makefile.include
+echo '
+CPP_OPTIONS=    -DMPI -DHOST=\"ResearchComputing_Intel\" -DIFC \
+                -DCACHE_SIZE=12000 -DPGF90 -Davoidalloc \
+                -DMPI_BLOCK=8000 -DscaLAPACK -Duse_collective \
+                -DnoAugXCmeta -Duse_bse_te \
+                -Duse_shmem -Dtbdyn \
+                -DVASP2WANNIER90 -DRPROMU_DGEMV -DRACCMU_DGEMV -DnoSTOPCAR -Ddo_loops
+CPP        = fpp -f_com=no -free -w0  $*$(FUFFIX) $*$(SUFFIX) $(CPP_OPTIONS)
 
-#   8a. CPP_OPTIONS= -DMPI -DHOST=\"ResearchComputing_Intel\" -DIFC \
-#                    -DCACHE_SIZE=12000 -DPGF90 -Davoidalloc \
-#                    -DMPI_BLOCK=8000 -DscaLAPACK -Duse_collective \
-#                    -DnoAugXCmeta -Duse_bse_te \
-#                    -Duse_shmem -Dtbdyn \
-#                    -DVASP2WANNIER90 -DRPROMU_DGEMV -DRACCMU_DGEMV -DnoSTOPCAR -Ddo_loops
-#   8b. FC         = mpif90
-#   8c. FCL        = mpif90 -mkl=sequential
-#   8d. FFLAGS     = -assume byterecl -xHost
-#   8e. OFLAG      = -O2 -ip -xHost
-#   8f. BLACS      = $(MKL_PATH)/libmkl_blacs_openmpi_lp64.a
-#   8g. LLIBS      = ../../src/wannier90-1.2/libwannier.a $(SCALAPACK) $(LAPACK) $(BLAS)
-#   8h. CPP_LIB    = $(CPP) -DLONGCHAR
-#   8i. CC_LIB     = mpicc
+FC         = mpifort
+FCL        = mpifort -mkl=sequential
+
+FREE       = -free -names lowercase
+
+FFLAGS     = -assume byterecl -xHost
+OFLAG      = -O2 -ip -xHost
+OFLAG_IN   = $(OFLAG)
+DEBUG      = -O0
+
+MKL_PATH   = $(MKLROOT)/lib/intel64
+BLAS       =
+LAPACK     =
+BLACS      = $(MKL_PATH)/libmkl_blacs_openmpi_lp64.a
+SCALAPACK  = $(MKL_PATH)/libmkl_scalapack_lp64.a $(BLACS)
+
+OBJECTS    = fftmpiw.o fftmpi_map.o fftw3d.o fft3dlib.o \
+             $(MKLROOT)/interfaces/fftw3xf/libfftw3xf_intel.a
+INCS       =-I$(MKLROOT)/include/fftw
+
+LLIBS      = ../../src/wannier90-1.2/libwannier.a $(SCALAPACK) $(LAPACK) $(BLAS)
+
+OBJECTS_O1 += fft3dfurth.o fftw3d.o fftmpi.o fftmpiw.o
+OBJECTS_O2 += fft3dlib.o
+
+CPP_LIB    = $(CPP) -DLONGCHAR
+FC_LIB     = $(FC)
+CC_LIB     = mpicc
+CFLAGS_LIB = -O
+FFLAGS_LIB = -O1
+FREE_LIB   = $(FREE)
+
+OBJECTS_LIB= linpack_double.o getshmem.o
+
+SRCDIR     = ../../src
+BINDIR     = ../../bin
+' > makefile.include
+
+echo "Please make sure that you have compiled /opt/share/intel/2015/composerxe/mkl/interfaces/fftw3xf , if not:
+        cd /opt/share/intel/2015/composerxe/mkl/interfaces/fftw3xf && make libintel64"
+echo "Press any key to continue.." && read 
 
 make all
 mkdir -p /opt/share/$APPNAME/$VERSION/$COMPILER-$COMPILERVERSION-$COMPILERBUILD-$COMPILERBUILDVERSION
@@ -77,4 +111,4 @@ cd /opt/share/$APPNAME/$VERSION/$COMPILER-$COMPILERVERSION-$COMPILERBUILD-$COMPI
 # create KAUST friendly excutables
 ln -s vasp_std vasp
 ln -s vasp_gam vasp-gamma
-lln -s vasp_ncl vasp-so
+ln -s vasp_ncl vasp-so

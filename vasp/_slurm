@@ -1,22 +1,67 @@
 #!/bin/bash -l
+
+# ./$APPNAME/_slurm $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE
+APPNAME=$1
+CLUSTER$2
+QUEUENAME=$3
+TOTAL_CORES=$4
+JOBTYPE=$5
+STARTDIR=$6
+TESTDIR=$7
+TASKSPERNODE=$8
+
+
+# Create JOBDIR
+JOBDIR=$TESTDIR/$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES-`date +%s`
+mkdir -p $JOBDIR
+
+# Copy Job Data
+DATADIR=$STARTDIR/$APPNAME/$JOBTYPE
+cp -a $DATADIR/* $JOBDIR/
+
+# Change directory
+cd $JOBDIR
+
+SUBMITFILE="$APPNAME.sbatch"
+DEPFILE="$APPNAME.dependency.sbatch"
+
+cat > $SUBMITFILE << EOF
+#!/bin/bash -l
  
-#SBATCH -J vasp_@JOBNAME@_@CLUSTER@_@NPAR@_@CPUNUM@   # Specify your job's name
-#SBATCH -o JOB.%j.out                       # File to which STDOUT will be written
-#SBATCH -e JOB.%j.err                       # File to which STDERR will be written
-#SBATCH -p @QUEUENAME@                    # Partition Queue (defaultq, idle, short). 
-#SBATCH -t @WALLTIME@                          # ALWAYS specify expected run time; format in D-HH:MM (e.g. 0-00:05)
-#SBATCH --ntasks=@CPUNUM@                 # Number of cores (e.g. 64)
-#SBATCH --exclusive                         # We should be the only job running on this node
- 
-# Clean environment first then load desired module
+#SBATCH -J $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES
+#SBATCH -o $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.out
+#SBATCH -e $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.err
+#SBATCH -p $QUEUENAME
+#SBATCH --ntasks=$TOTAL_CORES
+#SBATCH --exclusive
+
+cd $JOBDIR
+## VASP Specific
 module purge
+module load vasp
+
+time mpirun -f hosts.mpd -np $TOTAL_CORES -ppn $TASKSPERNODE vasp
+EOF
+
+echo "Submitting JOB from $JOBDIR"
+#SUBMITSTRING=$(sbatch $SUBMITFILE)
+
+cat > $DEPFILE << EOF
+#!/bin/bash -l
  
-# This will load the VASP module and its dependencies (Intel and OpenMPI)
-module load vasp/5.4.1/openmpi-1.10.2-intel-2015
- 
-# cd to your working directory under /scratch where your input file is
-#cd @CLUSTER@/@JOBNAME@/@NPAR@/@CPUNUM@
-mkdir -p results
-# run VASP
-#srun --cpu_bind=cores vasp
-time mpirun -np @CPUNUM@ vasp
+#SBATCH --dependency=afterany:${SUBMITSTRING##* }
+#SBATCH -J Copy_back_$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES
+#SBATCH -p $QUEUENAME
+#SBATCH -n 1
+
+RESULTS_DIR=$STARTDIR/_results/$APPNAME/$CLUSTER/$JOBDIR
+mkdir -p $RESULTS_DIR
+
+cp "$JOBDIR/$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.out" "$RESULTS_DIR"
+cp "$JOBDIR/$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.err" "$RESULTS_DIR"
+cp "$JOBDIR/OUTCAR" "$RESULTS_DIR"
+rm -rf "$JOBDIR"
+EOF
+
+echo "Submitting Dependency from $JOBDIR"
+#sbatch $DEPFILE
