@@ -14,6 +14,7 @@ TASKSPERNODE=$8
 # Create JOBDIR
 JOBDIR=$TESTDIR/$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES-`date +%s`
 mkdir -p $JOBDIR
+RESULTS_DIR=$STARTDIR/_results/$APPNAME/$CLUSTER/$JOBDIR
 
 # Copy Job Data
 DATADIR=$STARTDIR/$APPNAME/$JOBTYPE
@@ -40,7 +41,7 @@ cd $JOBDIR
 module purge
 module load vasp
 
-echo $SLURM_JOB_NODELIST > hosts.mpd
+echo '$SLURM_JOB_NODELIST' > hosts.mpd
 
 time mpirun -f hosts.mpd -np $TOTAL_CORES -ppn $TASKSPERNODE vasp
 EOF
@@ -56,7 +57,6 @@ cat > $DEPFILE << EOF
 #SBATCH -p $QUEUENAME
 #SBATCH -n 1
 
-RESULTS_DIR=$STARTDIR/_results/$APPNAME/$CLUSTER/$JOBDIR
 mkdir -p $RESULTS_DIR
 
 cp "$JOBDIR/$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.out" "$RESULTS_DIR"
