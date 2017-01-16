@@ -47,8 +47,8 @@ echo '$SLURM_JOB_NODELIST' > hosts.mpd
 time mpirun -f hosts.mpd -np $TOTAL_CORES -ppn $TASKSPERNODE vasp
 EOF
 
-echo "Submitting JOB from $JOBDIR"
 SUBMITSTRING=$(sbatch $SUBMITFILE)
+echo "Submitting JOB from $JOBDIR with JOBID ${SUBMITSTRING##* }"
 
 cat > $DEPFILE << EOF
 #!/bin/bash -l
@@ -66,5 +66,7 @@ cp "$JOBDIR/OUTCAR" "$RESULTS_DIR"
 rm -rf "$JOBDIR"
 EOF
 
-echo "Submitting Dependency from $JOBDIR"
-sbatch $DEPFILE
+DEPENDENCYSTRING=$(sbatch $DEPFILE)
+echo "Submitting Dependency JOB from $JOBDIR with JOBID ${DEPENDENCYSTRING##* }"
+echo
+echo "Results directory is $RESULTS_DIR"
