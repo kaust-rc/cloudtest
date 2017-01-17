@@ -87,6 +87,9 @@ if [ -z "${NODES}" ]; then
     large)
             export NODES=$(($NODES_DEF*4))
             ;;
+    *)
+            export NODES=$NODES_DEF
+            ;;
     esac
 fi
 
