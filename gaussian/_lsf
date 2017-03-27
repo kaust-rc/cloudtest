@@ -29,7 +29,7 @@ DEPFILE="$APPNAME.dependency.bsub"
 
 cat > $SUBMITFILE << EOF
 #!/bin/bash -l
- 
+
 #BSUB -J $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES
 #BSUB -o $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.out
 #BSUB -e $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.err
@@ -43,7 +43,8 @@ module purge
 module load gaussian
 
 export GAUSS_SCRDIR=$JOBDIR
-time g09 $JOBTYPE.dat $JOBTYPE.out 
+export OMP_NUM_THREADS=1
+time ( echo %NProcShared=${TOTAL_CORES}; cat $JOBTYPE.dat ) | g09 > $JOBTYPE.out
 
 EOF
 

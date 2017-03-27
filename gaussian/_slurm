@@ -29,7 +29,7 @@ DEPFILE="$APPNAME.dependency.sbatch"
 
 cat > $SUBMITFILE << EOF
 #!/bin/bash -l
- 
+
 #SBATCH -J $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES
 #SBATCH -o $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.out
 #SBATCH -e $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.err
@@ -43,7 +43,8 @@ module purge
 module load gaussian
 
 export GAUSS_SCRDIR=$JOBDIR
-time g09 $JOBTYPE.dat $JOBTYPE.out 
+export OMP_NUM_THREADS=1
+time ( echo %NProcShared=${TOTAL_CORES}; cat $JOBTYPE.dat ) | g09 > $JOBTYPE.out
 
 EOF
 
@@ -52,7 +53,7 @@ echo "Submitting JOB from $JOBDIR with JOBID ${SUBMITSTRING##* }"
 
 cat > $DEPFILE << EOF
 #!/bin/bash -l
- 
+
 #SBATCH --dependency=afterany:${SUBMITSTRING##* }
 #SBATCH -J Copy_back_$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES
 #SBATCH -p $QUEUENAME
