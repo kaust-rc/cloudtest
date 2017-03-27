@@ -1,0 +1,116 @@
+#!/bin/bash -l
+
+## the input would be like
+## ./start-testing -a <vasp> -c <azure> -q <vasp> -j <small>
+
+
+#
+# Defaults
+#
+QUEUENAME_DEF=normal
+NODES_DEF=1
+TASKSPERNODE_DEF=16
+JOBTYPE_DEF=small
+
+STARTDIR=$(pwd)
+TESTDIR=/gpfs/data/$USER/test-framework
+
+#
+# Usage function
+#
+usage() {
+    echo "Usage: $0 [-a application-name] [-c cluster-name] [-q queue-name] [-N number-of-nodes] [-t tasks-per-node] [-j job-type] [-h help-version]" 1>&2;
+    exit 1;
+}
+#
+# Use getopts to get arguments
+#
+while getopts ":a:q:N:c:t:v:j:" opt; do
+    case $opt in
+        a)
+            APPNAME=$OPTARG
+            ;;
+        q)
+            QUEUENAME=$OPTARG
+            ;;
+        N)
+            NODES=$OPTARG
+            ;;
+        c)
+            CLUSTER=$OPTARG
+            ;;
+        t)
+            TASKSPERNODE=$OPTARG
+            ;;
+        j)
+            JOBTYPE=$OPTARG
+            ;;
+        h)
+            usage
+            exit 1
+            ;;
+        [?])
+            echo "Invalid option: -$OPTARG"
+            usage
+            exit 1
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument."
+            usage
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z "${APPNAME}" ] || [ -z "${CLUSTER}" ] ; then
+    usage
+    exit 1
+fi
+
+if [ -z "${QUEUENAME}" ]; then
+    export QUEUENAME=$QUEUENAME_DEF
+fi
+
+if [ -z "${JOBTYPE}" ]; then
+    export JOBTYPE=$JOBTYPE_DEF
+fi
+
+if [ -z "${NODES}" ]; then
+    case $JOBTYPE in
+    small)
+            export NODES=$NODES_DEF
+            ;;
+    medium)
+            export NODES=$(($NODES_DEF*2))
+            ;;
+    large)
+            export NODES=$(($NODES_DEF*4))
+            ;;
+    *)
+            export NODES=$NODES_DEF
+            ;;
+    esac
+fi
+
+if [ -z "${TASKSPERNODE}" ]; then
+    export TASKSPERNODE=$TASKSPERNODE_DEF
+fi
+
+
+submit_job() {
+    APPNAME=$1
+    CLUSTER=$2
+    QUEUENAME=$3
+    NODES=$4
+    TASKSPERNODE=$5
+    JOBTYPE=$6
+    STARTDIR=$7
+    TESTDIR=$8
+
+    TOTAL_CORES=$(($NODES*$TASKSPERNODE))
+
+    ./$APPNAME/_lsf $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE
+}
+
+submit_job $APPNAME $CLUSTER $QUEUENAME $NODES $TASKSPERNODE $JOBTYPE $STARTDIR $TESTDIR
