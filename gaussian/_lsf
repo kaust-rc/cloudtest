@@ -47,4 +47,4 @@ time g09 $JOBTYPE.dat $JOBTYPE.out
 
 EOF
 
-bsub $SUBMITFILE
+bsub < $SUBMITFILE
