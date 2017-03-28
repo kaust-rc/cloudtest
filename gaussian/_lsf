@@ -43,7 +43,7 @@ module purge
 module load gaussian
 
 export GAUSS_SCRDIR=$JOBDIR
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=${TOTAL_CORES}
 time ( echo %NProcShared=${TOTAL_CORES}; cat $JOBTYPE.dat ) | g09 > $JOBTYPE.out
 
 EOF
