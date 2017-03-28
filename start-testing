@@ -11,21 +11,23 @@ QUEUENAME_DEF=defaultq
 NODES_DEF=1
 TASKSPERNODE_DEF=16
 JOBTYPE_DEF=small
+SCHEDTYPE_DEF=slurm
+TESTDIR_DEF=/scratch/$USER/test-framework
 
 STARTDIR=$(pwd)
-TESTDIR=/scratch/$USER/test-framework
+
 
 #
 # Usage function
 #
 usage() {
-    echo "Usage: $0 [-a application-name] [-c cluster-name] [-q queue-name] [-N number-of-nodes] [-t tasks-per-node] [-j job-type] [-h help-version]" 1>&2;
+    echo "Usage: $0 -a application-name -c cluster-name [-q queue-name] [-N number-of-nodes] [-t tasks-per-node] [-j job-type] [-s scheduler-name] [-p scratch-path] [-h help-version]" 1>&2;
     exit 1;
 }
 #
 # Use getopts to get arguments
 #
-while getopts ":a:q:N:c:t:v:j:" opt; do
+while getopts ":a:q:N:c:t:v:j:s:p:" opt; do
     case $opt in
         a)
             APPNAME=$OPTARG
@@ -44,6 +46,12 @@ while getopts ":a:q:N:c:t:v:j:" opt; do
             ;;
         j)
             JOBTYPE=$OPTARG
+            ;;
+        s)
+            SCHEDTYPE=$OPTARG
+            ;;
+        p)
+            TESTDIR=$OPTARG
             ;;
         h)
             usage
@@ -69,34 +77,41 @@ if [ -z "${APPNAME}" ] || [ -z "${CLUSTER}" ] ; then
 fi
 
 if [ -z "${QUEUENAME}" ]; then
-    export QUEUENAME=$QUEUENAME_DEF
+    QUEUENAME=$QUEUENAME_DEF
 fi
 
 if [ -z "${JOBTYPE}" ]; then
-    export JOBTYPE=$JOBTYPE_DEF
+    JOBTYPE=$JOBTYPE_DEF
 fi
 
 if [ -z "${NODES}" ]; then
     case $JOBTYPE in
     small)
-            export NODES=$NODES_DEF
+            NODES=$NODES_DEF
             ;;
     medium)
-            export NODES=$(($NODES_DEF*2))
+            NODES=$(($NODES_DEF*2))
             ;;
     large)
-            export NODES=$(($NODES_DEF*4))
+            NODES=$(($NODES_DEF*4))
             ;;
     *)
-            export NODES=$NODES_DEF
+            NODES=$NODES_DEF
             ;;
     esac
 fi
 
 if [ -z "${TASKSPERNODE}" ]; then
-    export TASKSPERNODE=$TASKSPERNODE_DEF
+    TASKSPERNODE=$TASKSPERNODE_DEF
 fi
 
+if [ -z "${SCHEDTYPE}" ]; then
+    SCHEDTYPE=$SCHEDTYPE_DEF
+fi
+
+if [ -z "${TESTDIR}" ]; then
+    TESTDIR=$TESTDIR_DEF
+fi
 
 submit_job() {
     APPNAME=$1
@@ -107,10 +122,32 @@ submit_job() {
     JOBTYPE=$6
     STARTDIR=$7
     TESTDIR=$8
+    SCHEDTYPE=$9
 
     TOTAL_CORES=$(($NODES*$TASKSPERNODE))
 
-    ./$APPNAME/_slurm $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE
+    ./$APPNAME/_$SCHEDTYPE $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE
 }
 
-submit_job $APPNAME $CLUSTER $QUEUENAME $NODES $TASKSPERNODE $JOBTYPE $STARTDIR $TESTDIR
+print_job_details(){
+    echo  "---------------------------------"
+    echo "|  Variable    |   Value "
+    echo  "---------------------------------"
+    echo "| APPNAME      |    $1 "
+    echo "| CLUSTER      |    $2 "
+    echo "| QUEUENAME    |    $3 "
+    echo "| NODES        |    $4 "
+    echo "| TASKSPERNODE |    $5 "
+    echo "| JOBTYPE      |    $6 "
+    echo "| STARTDIR     |    $7 "
+    echo "| TESTDIR      |    $8 "
+    echo "| SCHEDTYPE    |    $9 "
+    echo  "---------------------------------"
+    #echo "Submission command:"
+    #echo "./$APPNAME/_$SCHEDTYPE $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE"
+}
+
+
+print_job_details $APPNAME $CLUSTER $QUEUENAME $NODES $TASKSPERNODE $JOBTYPE $STARTDIR $TESTDIR $SCHEDTYPE
+
+submit_job $APPNAME $CLUSTER $QUEUENAME $NODES $TASKSPERNODE $JOBTYPE $STARTDIR $TESTDIR $SCHEDTYPE
