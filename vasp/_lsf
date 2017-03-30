@@ -1,6 +1,6 @@
 #!/bin/bash -l
 
-# ./$APPNAME/_lsf $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE
+# ./$APPNAME/_slurm $APPNAME $CLUSTER $QUEUENAME $TOTAL_CORES $JOBTYPE $STARTDIR $TESTDIR $TASKSPERNODE
 APPNAME=$1
 CLUSTER=$2
 QUEUENAME=$3
@@ -29,22 +29,23 @@ DEPFILE="$APPNAME.dependency.bsub"
 
 cat > $SUBMITFILE << EOF
 #!/bin/bash -l
-
+ 
 #BSUB -J $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES
 #BSUB -o $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.out
 #BSUB -e $APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.err
 #BSUB -q $QUEUENAME
 #BSUB -n $TOTAL_CORES
-
+#BSUB -R "span[ptile=$TASKSPERNODE]"
 
 cd $JOBDIR
-## GAUSSIAN Specific
+## VASP Specific
 module purge
-module load gaussian
+module load vasp
 
-export GAUSS_SCRDIR=$JOBDIR
-export OMP_NUM_THREADS=${TOTAL_CORES}
-time ( echo %NProcShared=${TOTAL_CORES}; cat $JOBTYPE.dat ) | g09 > $JOBTYPE.out
+echo '$SLURM_JOB_NODELIST' > hosts.mpd
+
+#time mpirun -f hosts.mpd -np $TOTAL_CORES -ppn $TASKSPERNODE -env I_MPI_FABRICS=dapl -env I_MPI_DAPL_PROVIDER=ofa-v2-ib0 -env I_MPI_DYNAMIC_CONNECTION=0 -genv I_MPI_DEBUG 100 vasp
+time mpirun vasp
 
 EOF
 
@@ -54,7 +55,7 @@ echo "Submitting JOB from $JOBDIR with JOBID ${JOBID}"
 
 cat > $DEPFILE << EOF
 #!/bin/bash -l
-
+ 
 #BSUB -w "done(${JOBID})"
 #BSUB -J Copy_back_$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES
 #BSUB -q $QUEUENAME
@@ -64,9 +65,8 @@ mkdir -p $RESULTS_DIR
 
 cp "$JOBDIR/$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.out" "$RESULTS_DIR"
 cp "$JOBDIR/$APPNAME-$CLUSTER-$JOBTYPE-$TOTAL_CORES.err" "$RESULTS_DIR"
-cp "$JOBDIR/$JOBTYPE.out" "$RESULTS_DIR"
-cp "$JOBDIR/*.chk" "$RESULTS_DIR"
-rm -rf "$JOBDIR"
+cp "$JOBDIR/OUTCAR" "$RESULTS_DIR"
+#rm -rf "$JOBDIR"
 EOF
 
 DEPENDENCYSTRING=$(bsub < $DEPFILE)
